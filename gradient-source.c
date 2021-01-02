@@ -38,7 +38,11 @@ static void gradient_update(void *data, obs_data_t *settings)
 	}
 	if (gs_texrender_begin(context->render, context->cx, context->cy)) {
 		gs_blend_state_push();
+		gs_matrix_push();
 		gs_blend_function(GS_BLEND_ONE, GS_BLEND_ZERO);
+		gs_ortho(0.0f, (float)context->cx, 0.0f, (float)context->cy,
+			 -100.0f,
+			 100.0f);
 		gs_effect_t *solid = obs_get_base_effect(OBS_EFFECT_SOLID);
 		gs_eparam_t *color =
 			gs_effect_get_param_by_name(solid, "color");
@@ -59,6 +63,7 @@ static void gradient_update(void *data, obs_data_t *settings)
 		gs_technique_end_pass(tech);
 		gs_technique_end(tech);
 		gs_texrender_end(context->render);
+		gs_matrix_pop();
 		gs_blend_state_pop();
 	}
 	obs_leave_graphics();
