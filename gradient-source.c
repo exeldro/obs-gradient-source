@@ -26,11 +26,22 @@ static void gradient_update(void *data, obs_data_t *settings)
 		       (uint32_t)obs_data_get_int(settings, "from_color"));
 	from_color.w =
 		(float)(obs_data_get_double(settings, "from_opacity") / 100.0);
+
+	struct vec4 from_color_srgb;
+	vec4_copy(&from_color_srgb, &from_color);
+	gs_float3_srgb_nonlinear_to_linear(from_color_srgb.ptr);
+
 	struct vec4 to_color;
 	vec4_from_rgba(&to_color,
 		       (uint32_t)obs_data_get_int(settings, "to_color"));
 	to_color.w =
 		(float)(obs_data_get_double(settings, "to_opacity") / 100.0);
+
+	struct vec4 to_color_srgb;
+	vec4_copy(&to_color_srgb, &to_color);
+	gs_float3_srgb_nonlinear_to_linear(to_color_srgb.ptr);
+
+	bool srgb = obs_data_get_bool(settings, "srgb");
 
 	double rotation =
 		fmod(obs_data_get_double(settings, "rotation"), 360.0);
@@ -164,23 +175,43 @@ static void gradient_update(void *data, obs_data_t *settings)
 			gs_matrix_translate3f(factor * scan_x - start_x,
 					      factor * scan_y - start_y, 0.0f);
 			if (factor > midpoint) {
-				factor = 0.5 +
-					 (factor - midpoint) / (1.0 - midpoint);
+				factor = 0.5 + (factor - midpoint) /
+						       (1.0 - midpoint) / 2;
 			} else {
-				factor = 0.5 - (midpoint - factor) / midpoint;
+				factor = 0.5 -
+					 (midpoint - factor) / midpoint / 2;
 			}
 
 			gs_matrix_rotaa4f(0.0f, 0.0f, 1.0f, RAD(rotation));
 			gs_matrix_translate3f(-1.0f * cd, 0.0f, 0.0f);
 
-			cur_color.x = from_color.x * (1.0f - factor) +
-				      to_color.x * factor;
-			cur_color.y = from_color.y * (1.0f - factor) +
-				      to_color.y * factor;
-			cur_color.z = from_color.z * (1.0f - factor) +
-				      to_color.z * factor;
-			cur_color.w = from_color.w * (1.0f - factor) +
-				      to_color.w * factor;
+			if (srgb) {
+				cur_color.x =
+					from_color_srgb.x * (1.0f - factor) +
+					to_color_srgb.x * factor;
+				cur_color.y =
+					from_color_srgb.y * (1.0f - factor) +
+					to_color_srgb.y * factor;
+				cur_color.z =
+					from_color_srgb.z * (1.0f - factor) +
+					to_color_srgb.z * factor;
+				cur_color.w =
+					from_color_srgb.w * (1.0f - factor) +
+					to_color_srgb.w * factor;
+
+				gs_float3_srgb_linear_to_nonlinear(
+					cur_color.ptr);
+			} else {
+				cur_color.x = from_color.x * (1.0f - factor) +
+					      to_color.x * factor;
+				cur_color.y = from_color.y * (1.0f - factor) +
+					      to_color.y * factor;
+				cur_color.z = from_color.z * (1.0f - factor) +
+					      to_color.z * factor;
+				cur_color.w = from_color.w * (1.0f - factor) +
+					      to_color.w * factor;
+			}
+
 			gs_effect_set_vec4(color, &cur_color);
 			gs_draw_sprite(0, 0, cd * 2, 2);
 			gs_matrix_pop();
@@ -192,7 +223,6 @@ static void gradient_update(void *data, obs_data_t *settings)
 		gs_blend_state_pop();
 	}
 	obs_leave_graphics();
-	
 }
 
 static void *gradient_create(obs_data_t *settings, obs_source_t *source)
@@ -237,6 +267,8 @@ static obs_properties_t *gradient_properties(void *data)
 					    obs_module_text("Opacity"), 0.0,
 					    100.0, 1.0);
 	obs_property_float_set_suffix(p, "%");
+
+	obs_properties_add_bool(ppts, "srgb", obs_module_text("sRGB"));
 
 	p = obs_properties_add_float_slider(
 		ppts, "rotation", obs_module_text("Rotation"), 0.0, 360.0, 1.0);

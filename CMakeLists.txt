@@ -1,4 +1,4 @@
-project(gradient-source VERSION 0.1.0)
+project(gradient-source VERSION 0.2.0)
 set(PROJECT_FULL_NAME "Gradient Source")
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/version.h)
