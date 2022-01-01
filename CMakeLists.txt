@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.12..4.0)
+
 project(gradient-source VERSION 0.3.0)
 set(PROJECT_FULL_NAME "Gradient Source")
 
@@ -24,11 +26,29 @@ if(WIN32)
 		gradient-source.rc)
 endif()
 
+if(BUILD_OUT_OF_TREE)
+    find_package(LibObs REQUIRED)
+endif()
+
 add_library(gradient-source MODULE
 	${gradient-source_HEADERS}
 	${gradient-source_SOURCES})
 target_link_libraries(gradient-source
 	libobs)
 
-set_target_properties(gradient-source PROPERTIES FOLDER "plugins/exeldro")
-install_obs_plugin_with_data(gradient-source data)
+if(BUILD_OUT_OF_TREE)
+    if(NOT LIB_OUT_DIR)
+        set(LIB_OUT_DIR "/lib/obs-plugins")
+    endif()
+    if(NOT DATA_OUT_DIR)
+        set(DATA_OUT_DIR "/share/obs/obs-plugins/gradient-source")
+    endif()
+    set_target_properties(gradient-source PROPERTIES PREFIX "")
+    install(TARGETS gradient-source
+        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${LIB_OUT_DIR})
+    install(DIRECTORY data/locale
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/${DATA_OUT_DIR})
+else()
+    set_target_properties(gradient-source PROPERTIES FOLDER "plugins/exeldro")
+    install_obs_plugin_with_data(gradient-source data)
+endif()
