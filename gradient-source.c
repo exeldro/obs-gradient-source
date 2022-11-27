@@ -89,7 +89,7 @@ static void gradient_update(void *data, obs_data_t *settings)
 		obs_data_unset_user_value(settings, "to_opacity");
 	}
 
-	int steps = obs_data_get_int(settings, "steps");
+	int steps = (int)obs_data_get_int(settings, "steps");
 	if (steps < 1)
 		steps = 1;
 
@@ -123,12 +123,13 @@ static void gradient_update(void *data, obs_data_t *settings)
 			}
 			gs_effect_set_vec4(color, &from_color);
 			gs_draw_sprite(0, 0, context->cx,
-				       context->cy * midpoint);
-			gs_matrix_translate3f(0.0f, context->cy * midpoint,
-					      0.0f);
+				       (uint32_t)(context->cy * midpoint));
+			gs_matrix_translate3f(
+				0.0f, (float)(context->cy * midpoint), 0.0f);
 			gs_effect_set_vec4(color, &to_color);
-			gs_draw_sprite(0, 0, context->cx,
-				       context->cy * (1.0 - midpoint));
+			gs_draw_sprite(
+				0, 0, context->cx,
+				(uint32_t)(context->cy * (1.0 - midpoint)));
 		} else {
 			// move up
 			const double t = tan(RAD(rotation + 180));
@@ -140,13 +141,15 @@ static void gradient_update(void *data, obs_data_t *settings)
 			}
 			start_x = (double)context->cx * -1.0;
 			gs_effect_set_vec4(color, &to_color);
-			gs_draw_sprite(0, 0, context->cx,
-				       context->cy * (1.0 - midpoint));
+			gs_draw_sprite(
+				0, 0, context->cx,
+				(uint32_t)(context->cy * (1.0 - midpoint)));
 			gs_matrix_translate3f(
-				0.0f, context->cy * (1.0 - midpoint), 0.0f);
+				0.0f, (float)(context->cy * (1.0 - midpoint)),
+				0.0f);
 			gs_effect_set_vec4(color, &from_color);
 			gs_draw_sprite(0, 0, context->cx,
-				       context->cy / midpoint);
+				       (uint32_t)(context->cy / midpoint));
 		}
 		cd = ceil(sqrt((context->cx * context->cx) +
 			       (fabs(scan_y) * fabs(scan_y))));
@@ -161,13 +164,15 @@ static void gradient_update(void *data, obs_data_t *settings)
 			}
 			start_y = (double)context->cy * -1.0;
 			gs_effect_set_vec4(color, &from_color);
-			gs_draw_sprite(0, 0, context->cx * midpoint,
+			gs_draw_sprite(0, 0, (uint32_t)(context->cx * midpoint),
 				       context->cy);
-			gs_matrix_translate3f(context->cx * midpoint, 0.0f,
-					      0.0f);
+			gs_matrix_translate3f((float)(context->cx * midpoint),
+					      0.0f, 0.0f);
 			gs_effect_set_vec4(color, &to_color);
-			gs_draw_sprite(0, 0, context->cx * (1.0 - midpoint),
-				       context->cy);
+			gs_draw_sprite(
+				0, 0,
+				(uint32_t)(context->cx * (1.0 - midpoint)),
+				context->cy);
 		} else {
 			// move left
 			const double t = tan(RAD(rotation + 90.0));
@@ -178,12 +183,15 @@ static void gradient_update(void *data, obs_data_t *settings)
 				start_x = (double)context->cx * -1.0;
 			}
 			gs_effect_set_vec4(color, &to_color);
-			gs_draw_sprite(0, 0, context->cx * (1.0 - midpoint),
-				       context->cy);
-			gs_matrix_translate3f(context->cx * (1.0 - midpoint),
-					      0.0f, 0.0f);
+			gs_draw_sprite(
+				0, 0,
+				(uint32_t)(context->cx * (1.0 - midpoint)),
+				context->cy);
+			gs_matrix_translate3f(
+				(float)(context->cx * (1.0 - midpoint)), 0.0f,
+				0.0f);
 			gs_effect_set_vec4(color, &from_color);
-			gs_draw_sprite(0, 0, context->cx * midpoint,
+			gs_draw_sprite(0, 0, (uint32_t)(context->cx * midpoint),
 				       context->cy);
 		}
 		cd = ceil(sqrt((context->cy * context->cy) +
@@ -193,9 +201,9 @@ static void gradient_update(void *data, obs_data_t *settings)
 
 	float len;
 	if (fabs(scan_x) > fabs(scan_y)) {
-		len = fabs(scan_x) / steps;
+		len = (float)(fabs(scan_x) / steps);
 	} else {
-		len = fabs(scan_y) / steps;
+		len = (float)(fabs(scan_y) / steps);
 	}
 
 	for (int step = 1; step <= steps; step++) {
@@ -213,29 +221,33 @@ static void gradient_update(void *data, obs_data_t *settings)
 		gs_float3_srgb_nonlinear_to_linear(to_color_srgb.ptr);
 
 		snprintf(property_name, PROPERTY_NAME_LEN, "midpoint_%i", step);
-		double midpoint =
-			obs_data_get_double(settings, property_name) / 100.0;
+		float midpoint =
+			(float)obs_data_get_double(settings, property_name) /
+			100.0f;
 
 		for (float i = 0.0f; i <= len; i += 1.0f) {
 			gs_matrix_push();
 			struct vec4 cur_color;
 			float factor = i / len;
 			gs_matrix_translate3f(
-				((step - 1.0f + factor) / steps) * scan_x -
-					start_x,
-				((step - 1.0f + factor) / steps) * scan_y -
-					start_y,
+				(float)(((step - 1.0f + factor) / steps) *
+						scan_x -
+					start_x),
+				(float)(((step - 1.0f + factor) / steps) *
+						scan_y -
+					start_y),
 				0.0f);
 			if (factor > midpoint) {
-				factor = 0.5 + (factor - midpoint) /
-						       (1.0 - midpoint) / 2;
+				factor = 0.5f + (factor - midpoint) /
+							(1.0f - midpoint) / 2;
 			} else {
-				factor = 0.5 -
+				factor = 0.5f -
 					 (midpoint - factor) / midpoint / 2;
 			}
 
-			gs_matrix_rotaa4f(0.0f, 0.0f, 1.0f, RAD(rotation));
-			gs_matrix_translate3f(-1.0f * cd, 0.0f, 0.0f);
+			gs_matrix_rotaa4f(0.0f, 0.0f, 1.0f,
+					  (float)RAD(rotation));
+			gs_matrix_translate3f((float)(-1.0 * cd), 0.0f, 0.0f);
 
 			if (srgb) {
 				cur_color.x =
@@ -265,7 +277,7 @@ static void gradient_update(void *data, obs_data_t *settings)
 			}
 
 			gs_effect_set_vec4(color, &cur_color);
-			gs_draw_sprite(0, 0, cd * 2, 2);
+			gs_draw_sprite(0, 0, (uint32_t)(cd * 2), 2);
 			gs_matrix_pop();
 		}
 		from_color = to_color;
@@ -309,8 +321,10 @@ static void gradient_video_render(void *data, gs_effect_t *effect)
 bool gradient_steps_modified(void *priv, obs_properties_t *props,
 			     obs_property_t *property, obs_data_t *settings)
 {
+	UNUSED_PARAMETER(priv);
+	UNUSED_PARAMETER(property);
 	bool changed = false;
-	int steps = obs_data_get_int(settings, "steps");
+	int steps = (int)obs_data_get_int(settings, "steps");
 	char property_name[PROPERTY_NAME_LEN];
 	for (int i = 1; i <= steps; i++) {
 		snprintf(property_name, PROPERTY_NAME_LEN, "midpoint_%i", i);
@@ -319,6 +333,7 @@ bool gradient_steps_modified(void *priv, obs_properties_t *props,
 			continue;
 
 		changed = true;
+		obs_properties_remove_by_name(props, "plugin_info");
 
 		p = obs_properties_add_float_slider(props, property_name,
 						    obs_module_text("Midpoint"),
@@ -343,6 +358,13 @@ bool gradient_steps_modified(void *priv, obs_properties_t *props,
 		obs_properties_remove_by_name(props, property_name);
 		snprintf(property_name, PROPERTY_NAME_LEN, "to_opacity_%i", i);
 		obs_properties_remove_by_name(props, property_name);
+	}
+	if (changed) {
+		obs_properties_add_text(
+			props, "plugin_info",
+			"<a href=\"https://obsproject.com/forum/resources/gradient-source.1172/\">Gradient Source</a> (" PROJECT_VERSION
+			") by <a href=\"https://www.exeldro.com\">Exeldro</a>",
+			OBS_TEXT_INFO);
 	}
 	return changed;
 }
@@ -376,7 +398,6 @@ static obs_properties_t *gradient_properties(void *data)
 
 	obs_property_set_modified_callback2(steps, gradient_steps_modified,
 					    data);
-
 	return ppts;
 }
 

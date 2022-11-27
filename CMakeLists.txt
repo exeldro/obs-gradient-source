@@ -1,17 +1,34 @@
-cmake_minimum_required(VERSION 3.12..4.0)
+# --- Detect if the plugin is build out of tree or not ---
+if(CMAKE_PROJECT_NAME STREQUAL "obs-studio")
+  set(BUILD_OUT_OF_TREE OFF)
+else()
+  set(BUILD_OUT_OF_TREE ON)
+  cmake_minimum_required(VERSION 3.18)
+endif()
 
-project(gradient-source VERSION 0.3.0)
+project(gradient-source VERSION 0.3.1)
 set(PROJECT_FULL_NAME "Gradient Source")
+
+# Set new UUIDs when you start to create a new plugin.
+set(MACOS_PACKAGE_UUID "7E9FB2F8-D4BC-4099-805F-69F745A17900")
+set(MACOS_INSTALLER_UUID "38823BC6-48D0-462A-955F-F1FABC492E74")
+
+add_library(${PROJECT_NAME} MODULE)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/version.h)
 
-set(gradient-source_HEADERS
+target_sources(${PROJECT_NAME} PRIVATE
+	gradient-source.c
 	gradient-source.h
 	version.h)
-set(gradient-source_SOURCES
-	gradient-source.c)
 
-if(WIN32)
+if(BUILD_OUT_OF_TREE)
+	find_package(libobs REQUIRED)
+	find_package(obs-frontend-api REQUIRED)
+	include(cmake/ObsPluginHelpers.cmake)
+endif()
+  
+if(OS_WINDOWS)
 	get_filename_component(ISS_FILES_DIR "${CMAKE_BINARY_DIR}\\..\\package" ABSOLUTE)
 	file(TO_NATIVE_PATH "${ISS_FILES_DIR}" ISS_FILES_DIR)
 	get_filename_component(ISS_PACKAGE_DIR "${CMAKE_PACKAGE_PREFIX}\\.." ABSOLUTE)
@@ -21,34 +38,34 @@ if(WIN32)
 	configure_file("installer.iss.in"
 			"${PROJECT_BINARY_DIR}/installer.iss"
 		)
-	configure_file(resource.rc.in gradient-source.rc)
-	list(APPEND gradient-source_SOURCES
-		gradient-source.rc)
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/resource.rc.in ${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}.rc)
+	target_sources(${PROJECT_NAME} PRIVATE 
+		${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}.rc)
+elseif(OS_MACOS)
+		set(MACOS_BUNDLEID "com.exeldro.${PROJECT_NAME}")
+		set(MACOSX_PLUGIN_GUI_IDENTIFIER "${MACOS_BUNDLEID}")
+		set(MACOSX_PLUGIN_BUNDLE_VERSION "${PROJECT_VERSION}")
+		set(MACOSX_PLUGIN_SHORT_VERSION_STRING "1")
+		configure_file(cmake/bundle/macos/installer-macos.pkgproj.in ${CMAKE_BINARY_DIR}/installer-macos.generated.pkgproj)
+		target_compile_options(${PROJECT_NAME} PRIVATE -Wall)
 endif()
 
-if(BUILD_OUT_OF_TREE)
-    find_package(LibObs REQUIRED)
-endif()
-
-add_library(gradient-source MODULE
-	${gradient-source_HEADERS}
-	${gradient-source_SOURCES})
-target_link_libraries(gradient-source
-	libobs)
+target_link_libraries(${PROJECT_NAME}
+	OBS::libobs)
 
 if(BUILD_OUT_OF_TREE)
     if(NOT LIB_OUT_DIR)
         set(LIB_OUT_DIR "/lib/obs-plugins")
     endif()
     if(NOT DATA_OUT_DIR)
-        set(DATA_OUT_DIR "/share/obs/obs-plugins/gradient-source")
+        set(DATA_OUT_DIR "/share/obs/obs-plugins/${PROJECT_NAME}")
     endif()
-    set_target_properties(gradient-source PROPERTIES PREFIX "")
-    install(TARGETS gradient-source
+    set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
+    install(TARGETS ${PROJECT_NAME}
         LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${LIB_OUT_DIR})
     install(DIRECTORY data/locale
         DESTINATION ${CMAKE_INSTALL_PREFIX}/${DATA_OUT_DIR})
 else()
-    set_target_properties(gradient-source PROPERTIES FOLDER "plugins/exeldro")
-    install_obs_plugin_with_data(gradient-source data)
+    set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "plugins/exeldro")
 endif()
+setup_plugin_target(${PROJECT_NAME})
