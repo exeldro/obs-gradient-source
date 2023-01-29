@@ -6,7 +6,7 @@
 #include "version.h"
 
 #define MAX_GRADIENT_STEPS 9
-#define PROPERTY_NAME_LEN 15
+#define PROPERTY_NAME_LEN 24
 
 struct gradient_info {
 	obs_source_t *source;
