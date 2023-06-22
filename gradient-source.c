@@ -358,11 +358,20 @@ bool gradient_steps_modified(void *priv, obs_properties_t *props,
 
 	for (int i = steps + 1; i <= MAX_GRADIENT_STEPS; i++) {
 		snprintf(property_name, PROPERTY_NAME_LEN, "midpoint_%i", i);
-		obs_properties_remove_by_name(props, property_name);
+		if (obs_properties_get(props, property_name)) {
+			obs_properties_remove_by_name(props, property_name);
+			changed = true;
+		}
 		snprintf(property_name, PROPERTY_NAME_LEN, "to_color_%i", i);
-		obs_properties_remove_by_name(props, property_name);
+		if (obs_properties_get(props, property_name)) {
+			obs_properties_remove_by_name(props, property_name);
+			changed = true;
+		}
 		snprintf(property_name, PROPERTY_NAME_LEN, "to_opacity_%i", i);
-		obs_properties_remove_by_name(props, property_name);
+		if (obs_properties_get(props, property_name)) {
+			obs_properties_remove_by_name(props, property_name);
+			changed = true;
+		}
 	}
 	if (changed) {
 		obs_properties_add_text(
